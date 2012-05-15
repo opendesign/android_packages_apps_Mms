@@ -93,6 +93,7 @@ public class MessageItem {
     int mMessageSize;
     int mErrorType;
     int mErrorCode;
+    long mDate;
     boolean mFullTimestamp;
     boolean mSentTimestamp;
 
@@ -138,15 +139,13 @@ public class MessageItem {
             }
             mBody = cursor.getString(columnsMap.mColumnSmsBody);
 
-            // Unless the message is currently in the progress of being sent, it gets a time stamp.
-            if (!isOutgoingMessage()) {
-                // Set "received" or "sent" time stamp
-                long date = cursor.getLong(columnsMap.mColumnSmsDate);
-                if (mSentTimestamp && mType.equals(Sms.MESSAGE_TYPE_INBOX)) {
-                    date = cursor.getLong(columnsMap.mColumnSmsDateSent);
-                }
-                mTimestamp = MessageUtils.formatTimeStampString(context, date, mFullTimestamp);
+            // The message gets at time stamp all the time, even during creation.
+            // Set "received" or "sent" time stamp
+            mDate  = cursor.getLong(columnsMap.mColumnSmsDate);
+            if (mSentTimestamp && (mBoxId == Sms.MESSAGE_TYPE_INBOX)) {
+                mDate = cursor.getLong(columnsMap.mColumnSmsDateSent);
             }
+            mTimestamp = MessageUtils.formatTimeStampString(context, mDate, mFullTimestamp);
 
             mLocked = cursor.getInt(columnsMap.mColumnSmsLocked) != 0;
             mErrorCode = cursor.getInt(columnsMap.mColumnSmsErrorCode);

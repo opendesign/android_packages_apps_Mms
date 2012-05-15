@@ -82,6 +82,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -171,6 +172,7 @@ import com.android.mms.model.SlideshowModel;
 import com.android.mms.templates.TemplateGesturesLibrary;
 import com.android.mms.templates.TemplatesProvider.Template;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.RecipientsEditor.RecipientContextMenuInfo;
 import com.android.mms.util.EmojiParser;
@@ -3518,7 +3520,26 @@ public class ComposeMessageActivity extends Activity
         mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (view != null) {
-                    ((MessageListItem) view).onMessageListItemClick();
+                    if(!isCursorValid()) {
+                        return;
+                    }
+                    Cursor cursor = mMsgListAdapter.getCursor();
+                    String type = cursor.getString(COLUMN_MSG_TYPE);
+                    long msgId = cursor.getLong(COLUMN_ID);
+                    MessageItem msgItem = mMsgListAdapter.getCachedMessageItem(type, msgId, cursor);
+                    if(msgItem != null && msgItem.isSending()) {
+                        CountDownTimer countDownTimer = SmsMessageSender.mCountDownTimers.get(msgItem.mDate);
+                        if(countDownTimer != null) {
+                            countDownTimer.cancel();
+                            SmsMessageSender.mCountDownTimers.remove(countDownTimer);
+                            editMessageItem(msgItem);
+                            drawBottomPanel();
+                        } else {
+                            Log.d(TAG, "No CountDownTimer instance for message: "+msgItem.mDate);
+                        }
+                    } else {
+                        ((MessageListItem) view).onMessageListItemClick();
+                    }
                 }
             }
         });

@@ -17,6 +17,7 @@
 
 package com.android.mms.ui;
 
+import java.text.DecimalFormat;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +36,9 @@ import android.graphics.Typeface;
 import android.graphics.Paint.FontMetricsInt;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.CountDownTimer;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Browser;
@@ -66,7 +69,11 @@ import android.widget.TextView;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
+import com.android.mms.data.Conversation;
 import com.android.mms.data.WorkingMessage;
+import com.android.mms.transaction.SmsMessageSender;
+import com.android.mms.transaction.SmsReceiver;
+import com.android.mms.transaction.SmsReceiverService;
 import com.android.mms.transaction.Transaction;
 import com.android.mms.transaction.TransactionBundle;
 import com.android.mms.transaction.TransactionService;
@@ -283,10 +290,20 @@ public class MessageListItem extends LinearLayout implements
         mBodyTextView.setText(formattedMessage);
 
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
-        // string in place of the timestamp.
-        mDateView.setText(msgItem.isSending() ?
-                mContext.getResources().getString(R.string.sending_message) :
-                    msgItem.mTimestamp);
+        // string in place of the timestamp. If the countdown feature is enabled, then we show the time we have to wait.
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+        boolean countDownEnabled = prefs.getBoolean(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN, false);
+        Log.d(TAG, "Message has ID "+msgItem.mMsgId);
+        if(countDownEnabled && msgItem.isSending()) {
+            final int countDownDelay = Integer.valueOf(prefs.getString(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN_VALUE, "3"));
+            mDateView.setText(mContext.getResources().getString(R.string.sending_message_delayed_prefix)
+                    +countDownDelay
+                    +mContext.getResources().getString(R.string.sending_message_delayed_suffix));
+        } else {
+            mDateView.setText(msgItem.isSending() ?
+                    mContext.getResources().getString(R.string.sending_message) :
+                        msgItem.mTimestamp);
+        }
 
         if (msgItem.isSms()) {
             hideMmsViewIfNeeded();

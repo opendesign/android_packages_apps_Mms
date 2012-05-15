@@ -19,6 +19,7 @@ package com.android.mms.transaction;
 
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
+import com.android.mms.data.Conversation;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.google.android.mms.MmsException;
 import android.database.sqlite.SqliteWrapper;
@@ -29,12 +30,16 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
+import android.os.CountDownTimer;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Sms;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SmsMessageSender implements MessageSender {
     protected final Context mContext;
@@ -57,6 +62,8 @@ public class SmsMessageSender implements MessageSender {
 
     private static final int COLUMN_REPLY_PATH_PRESENT = 0;
     private static final int COLUMN_SERVICE_CENTER     = 1;
+
+    public static final Map<Long, CountDownTimer> mCountDownTimers = new HashMap<Long, CountDownTimer>();
 
     public SmsMessageSender(Context context, String[] dests, String msgText, long threadId) {
         mContext = context;
@@ -155,11 +162,39 @@ public class SmsMessageSender implements MessageSender {
                 }
             }
         }
-        // Notify the SmsReceiverService to send the message out
-        mContext.sendBroadcast(new Intent(SmsReceiverService.ACTION_SEND_MESSAGE,
-                null,
-                mContext,
-                SmsReceiver.class));
+
+        boolean countDownEnabled = prefs.getBoolean(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN, false);
+        boolean conversationExists = Conversation.exists(mThreadId);
+        if(countDownEnabled && conversationExists) {
+            int countDownDelay = Integer.valueOf(prefs.getString(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN_VALUE, "3"));
+            Looper.prepare();
+            CountDownTimer countDownTimer = new CountDownTimer(countDownDelay * 1000, 1000) {
+                public void onTick(long millisUntilFinished) {
+                    Log.d(TAG, "sendSmsWorker waiting before sending message: "+millisUntilFinished + "ms remaining");
+                }
+
+                public void onFinish() {
+                    // Notify the SmsReceiverService to send the message out
+                    mContext.sendBroadcast(new Intent(SmsReceiverService.ACTION_SEND_MESSAGE,
+                            null,
+                            mContext,
+                            SmsReceiver.class));
+                    mCountDownTimers.remove(mTimestamp);
+                    Log.d(TAG, "Removing countdown for message: "+mTimestamp);
+                }
+            };
+
+            countDownTimer.start();
+            mCountDownTimers.put(mTimestamp, countDownTimer);
+            Log.d(TAG, "Inserting countdown for message: "+mTimestamp);
+            Looper.loop();
+        } else {
+            // Notify the SmsReceiverService to send the message out
+            mContext.sendBroadcast(new Intent(SmsReceiverService.ACTION_SEND_MESSAGE,
+                        null,
+                        mContext,
+                        SmsReceiver.class));
+        }
         return false;
     }
 
