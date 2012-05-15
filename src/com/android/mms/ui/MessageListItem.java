@@ -18,6 +18,7 @@
 package com.android.mms.ui;
 
 import java.text.DecimalFormat;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -263,6 +264,37 @@ public class MessageListItem extends LinearLayout implements
         mAvatar.setImageDrawable(avatarDrawable);
     }
 
+    private Map<Long, CountDownUpdater> mCountDownUpdaters = new HashMap<Long, CountDownUpdater>();
+    private class CountDownUpdater extends CountDownTimer {
+        int mRemainingSeconds;
+        final TextView mTextView = mDateView;
+        long mDate;
+
+        CountDownUpdater(int countDownDelay) {
+            super(countDownDelay * 1000, 1000);
+            mRemainingSeconds = countDownDelay;
+            mTextView.setText(mContext.getResources().getString(R.string.sending_message_delayed_prefix)
+                    +mRemainingSeconds
+                    +mContext.getResources().getString(R.string.sending_message_delayed_suffix));
+            Log.d(TAG, "CountDownUpdater started with delay "+mRemainingSeconds);
+        }
+        @Override
+        public void onTick(long millisUntilFinished) {
+            Log.d(TAG, "Remaining view seconds: "+mRemainingSeconds);
+            mRemainingSeconds--;
+            if(mRemainingSeconds > 0) { // sometimes a tick occurs right at the end
+                mTextView.setText(mContext.getResources().getString(R.string.sending_message_delayed_prefix)
+                        +mRemainingSeconds
+                        +mContext.getResources().getString(R.string.sending_message_delayed_suffix));
+            }
+        }
+        @Override
+        public void onFinish() {
+            mTextView.setText(mContext.getResources().getString(R.string.sending_message));
+            mCountDownUpdaters.remove(mDate);
+        }
+    }
+
     private void bindCommonMessage(final MessageItem msgItem) {
         if (mDownloadButton != null) {
             mDownloadButton.setVisibility(View.GONE);
@@ -291,15 +323,15 @@ public class MessageListItem extends LinearLayout implements
 
         // If we're in the process of sending a message (i.e. pending), then we show a "SENDING..."
         // string in place of the timestamp. If the countdown feature is enabled, then we show the time we have to wait.
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         boolean countDownEnabled = prefs.getBoolean(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN, false);
-        Log.d(TAG, "Message has ID "+msgItem.mMsgId);
-        if(countDownEnabled && msgItem.isSending()) {
+        boolean countDownRunning = mCountDownUpdaters.containsKey(msgItem.mDate);
+        if(countDownEnabled && msgItem.isSending() && !countDownRunning) {
             final int countDownDelay = Integer.valueOf(prefs.getString(MessagingPreferenceActivity.SMS_SEND_COUNTDOWN_VALUE, "3"));
-            mDateView.setText(mContext.getResources().getString(R.string.sending_message_delayed_prefix)
-                    +countDownDelay
-                    +mContext.getResources().getString(R.string.sending_message_delayed_suffix));
-        } else {
+            CountDownUpdater countDownUpdater = new CountDownUpdater(countDownDelay);
+            mCountDownUpdaters.put(msgItem.mDate, countDownUpdater);
+            countDownUpdater.start();
+        } else if(!countDownRunning) {
             mDateView.setText(msgItem.isSending() ?
                     mContext.getResources().getString(R.string.sending_message) :
                         msgItem.mTimestamp);
