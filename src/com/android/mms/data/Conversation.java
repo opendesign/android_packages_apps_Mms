@@ -125,6 +125,16 @@ public class Conversation {
     public static Conversation createNew(Context context) {
         return new Conversation(context);
     }
+    
+    /**
+     * Tell if the conversation matching the provided thread ID exists.
+     */
+    public static boolean exists(long threadId) {
+        if (DEBUG) {
+            Log.v(TAG, "Conversation exists by threadId: " + threadId);
+        }
+        return (Cache.get(threadId) != null);
+    }
 
     /**
      * Find the conversation matching the provided thread ID.
