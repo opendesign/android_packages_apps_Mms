@@ -127,6 +127,16 @@ public class Conversation {
     }
 
     /**
+     * Tell if the conversation matching the provided thread ID exists.
+     */
+    public static boolean exists(long threadId) {
+        if (DEBUG) {
+            Log.v(TAG, "Conversation exists by threadId: " + threadId);
+        }
+        return (Cache.get(threadId) != null);
+    }
+
+    /**
      * Find the conversation matching the provided thread ID.
      */
     public static Conversation get(Context context, long threadId, boolean allowQuery) {

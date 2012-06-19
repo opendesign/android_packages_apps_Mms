@@ -313,6 +313,9 @@
 
     <!-- Settings item description for entering SIM card message screen -->
     <string name="pref_summary_manage_sim_messages">Manage messages stored on your SIM card</string>
+    <!-- Settings item description for enabling the SMS sending countdown -->
+    <string name="pref_summary_sms_send_countdown">Countdown delay before sending messages</string>
+    <string name="pref_summary_sms_send_countdown_value">Add a countdown delay before sending messages to avoid sending mistaken messages</string>
     <!-- Settings item description for boolean MMS delivery report setting -->
     <string name="pref_summary_mms_delivery_reports">Request a delivery report for each message you send</string>
     <!-- Settings item description for boolean MMS read report setting -->
@@ -325,6 +328,9 @@
     <string name="pref_summary_delete_limit"><xliff:g id="count">%1$s</xliff:g> messages per conversation</string>
     <!-- Settings item for entering SIM card message screen -->
     <string name="pref_title_manage_sim_messages">Manage SIM card messages</string>
+    <!-- Settings item for delaying SMS -->
+    <string name="pref_title_sms_send_countdown">Help stop mistaken messages</string>
+    <string name="pref_title_sms_send_countdown_value">Delay before dispatching the message</string>
     <!-- Settings item for boolean option to enable/disable MMS delivery reports -->
     <string name="pref_title_mms_delivery_reports">Delivery reports</string>
     <!-- Settings item for boolean option to enable/disable MMS read reports -->
@@ -727,6 +733,10 @@
 
     <!-- Brief small label shown to right of message when it is being sent. -->
     <string name="sending_message">SENDING\u2026</string>
+
+    <!-- Label shown to right of message before it is being sent when the countdown feature is enabeld -->
+    <string name="sending_countdown_prefix">SENDING IN\u0020</string>
+    <string name="sending_countdown_suffix">s\u2026</string>
 
     <!-- Title of progress dialog for picker -->
     <string name="pick_too_many_recipients">Too many recipients</string>
