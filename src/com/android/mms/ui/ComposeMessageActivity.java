@@ -105,6 +105,7 @@ import android.telephony.SmsMessage;
 import android.text.ClipboardManager;
 import android.text.Editable;
 import android.text.InputFilter;
+import android.text.InputType;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -127,6 +128,7 @@ import android.view.WindowManager;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
+import android.view.inputmethod.InputMethod;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
@@ -292,7 +294,8 @@ public class ComposeMessageActivity extends Activity
     private RecipientsEditor mRecipientsEditor;  // UI control for editing recipients
     private ImageButton mRecipientsPicker;       // UI control for recipients picker
 
-    private boolean mIsKeyboardOpen;             // Whether the hardware keyboard is visible
+    private boolean mIsKeyboardOpen;             // Whether any keyboard is open
+    private boolean mIsHardKeyboardOpen;         // Whether the hard keyboard is open
     private boolean mIsLandscape;                // Whether we're in landscape mode
 
     private boolean mPossiblePendingNotification;   // If the message list has changed, we may have
@@ -330,6 +333,8 @@ public class ComposeMessageActivity extends Activity
     private SimpleCursorAdapter mTemplatesCursorAdapter;
 
     private double mGestureSensitivity;
+
+    private int inputMethod;
 
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
@@ -391,6 +396,45 @@ public class ComposeMessageActivity extends Activity
                     s = s.replace("ł", "l");
                     s = s.replace("Đ", "DJ");
                     s = s.replace("đ", "dj");
+                    s = s.replace("Α", "A");
+                    s = s.replace("Β", "B");
+                    s = s.replace("Ε", "E");
+                    s = s.replace("Ζ", "Z");
+                    s = s.replace("Η", "H");
+                    s = s.replace("Ι", "I");
+                    s = s.replace("Κ", "K");
+                    s = s.replace("Μ", "M");
+                    s = s.replace("Ν", "N");
+                    s = s.replace("Ο", "O");
+                    s = s.replace("Ρ", "P");
+                    s = s.replace("Τ", "T");
+                    s = s.replace("Υ", "Y");
+                    s = s.replace("Χ", "X");
+                    s = s.replace("α", "A");
+                    s = s.replace("β", "B");
+                    s = s.replace("γ", "Γ");
+                    s = s.replace("δ", "Δ");
+                    s = s.replace("ε", "E");
+                    s = s.replace("ζ", "Z");
+                    s = s.replace("η", "H");
+                    s = s.replace("θ", "Θ");
+                    s = s.replace("ι", "I");
+                    s = s.replace("κ", "K");
+                    s = s.replace("λ", "Λ");
+                    s = s.replace("μ", "M");
+                    s = s.replace("ν", "N");
+                    s = s.replace("ξ", "Ξ");
+                    s = s.replace("ο", "O");
+                    s = s.replace("π", "Π");
+                    s = s.replace("ρ", "P");
+                    s = s.replace("σ", "Σ");
+                    s = s.replace("τ", "T");
+                    s = s.replace("υ", "Y");
+                    s = s.replace("φ", "Φ");
+                    s = s.replace("χ", "X");
+                    s = s.replace("ψ", "Ψ");
+                    s = s.replace("ω", "Ω");
+                    s = s.replace("ς", "Σ");
 
                     output.append(s);
                 }
@@ -674,7 +718,7 @@ public class ComposeMessageActivity extends Activity
                 String title = getResourcesString(R.string.has_invalid_recipient,
                         mRecipientsEditor.formatInvalidNumbers(isMms));
                 new AlertDialog.Builder(this)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setTitle(title)
                     .setMessage(R.string.invalid_recipient_message)
                     .setPositiveButton(R.string.try_to_send,
@@ -683,7 +727,7 @@ public class ComposeMessageActivity extends Activity
                     .show();
             } else {
                 new AlertDialog.Builder(this)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setTitle(R.string.cannot_send_message)
                     .setMessage(R.string.cannot_send_message_reason)
                     .setPositiveButton(R.string.yes, new CancelSendingListener())
@@ -1850,6 +1894,7 @@ public class ComposeMessageActivity extends Activity
                 .getInt(MessagingPreferenceActivity.GESTURE_SENSITIVITY_VALUE, 3);
         boolean showGesture = prefs.getBoolean(MessagingPreferenceActivity.SHOW_GESTURE, false);
         boolean stripUnicode = prefs.getBoolean(MessagingPreferenceActivity.STRIP_UNICODE, false);
+        inputMethod = Integer.parseInt(prefs.getString(MessagingPreferenceActivity.INPUT_TYPE, Integer.toString(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE)));
 
         mLibrary = TemplateGesturesLibrary.getStore(this);
 
@@ -2213,6 +2258,16 @@ public class ComposeMessageActivity extends Activity
                 updateTitle(recipients);
             }
         }, 100);
+
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences((Context) ComposeMessageActivity.this);
+        inputMethod = Integer.parseInt(prefs.getString(MessagingPreferenceActivity.INPUT_TYPE, Integer.toString(InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE)));
+        Log.d("MMS Input Type", Integer.toString(inputMethod));
+        mTextEditor.setInputType(InputType.TYPE_CLASS_TEXT|
+                                inputMethod|
+                                InputType.TYPE_TEXT_FLAG_AUTO_CORRECT|
+                                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES|
+                                InputType.TYPE_TEXT_FLAG_MULTI_LINE);
     }
 
     @Override
@@ -2233,10 +2288,20 @@ public class ComposeMessageActivity extends Activity
     protected void onStop() {
         super.onStop();
 
+        // No need to do the querying when finished this activity
+        mBackgroundQueryHandler.cancelOperation(MESSAGE_LIST_QUERY_TOKEN);
+
         // Allow any blocked calls to update the thread's read status.
         mConversation.blockMarkAsRead(false);
 
         if (mMsgListAdapter != null) {
+            // Close the cursor in the ListAdapter if the activity stopped.
+            Cursor cursor = mMsgListAdapter.getCursor();
+
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+
             mMsgListAdapter.changeCursor(null);
         }
 
@@ -2282,7 +2347,8 @@ public class ComposeMessageActivity extends Activity
 
     // returns true if landscape/portrait configuration has changed
     private boolean resetConfiguration(Configuration config) {
-        mIsKeyboardOpen = config.keyboardHidden == KEYBOARDHIDDEN_NO;
+        mIsKeyboardOpen = config.keyboardHidden == KEYBOARDHIDDEN_NO; //might need to be changed seeing as the comment describes it as the hard keyboard being open
+        mIsHardKeyboardOpen = config.hardKeyboardHidden == KEYBOARDHIDDEN_NO;
         boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
         if (mIsLandscape != isLandscape) {
             mIsLandscape = isLandscape;
@@ -2913,7 +2979,7 @@ public class ComposeMessageActivity extends Activity
         if (recipientLimit != Integer.MAX_VALUE && recipientCount > recipientLimit) {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.pick_too_many_recipients)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setMessage(getString(R.string.too_many_recipients, recipientCount, recipientLimit))
                     .setPositiveButton(android.R.string.ok, null)
                     .create().show();
@@ -3339,17 +3405,23 @@ public class ComposeMessageActivity extends Activity
 
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
         if (event != null) {
-            // if shift key is down, then we want to insert the '\n' char in the TextView;
-            // otherwise, the default action is to send the message.
-            if (!event.isShiftPressed()) {
+            boolean sendNow;
+            if(!mIsHardKeyboardOpen && inputMethod == InputType.TYPE_TEXT_VARIATION_LONG_MESSAGE){
+                //if the physical keyboard is not open and if the user has selected enter
+                //for a new line the shift key must be pressed to send
+                sendNow = event.isShiftPressed();
+            }else{
+                //otherwise enter sends and shift must be pressed for a new line
+                sendNow = !event.isShiftPressed();
+            }
+            if (sendNow) {
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
                 }
                 return true;
             }
-            return false;
+        return false;
         }
-
         if (isPreparedForSending()) {
             confirmSendMessageIfNeeded();
         }
@@ -3799,6 +3871,7 @@ public class ComposeMessageActivity extends Activity
                     mDataSetChangedListener = new MessageListAdapter.OnDataSetChangedListener() {
         public void onDataSetChanged(MessageListAdapter adapter) {
             mPossiblePendingNotification = true;
+            checkPendingNotification();
         }
 
         public void onContentChanged(MessageListAdapter adapter) {
@@ -4153,6 +4226,7 @@ public class ComposeMessageActivity extends Activity
             if (prediction.score > mGestureSensitivity) {
                 Bundle b = new Bundle();
                 b.putLong("id", Long.parseLong(prediction.name));
+                getLoaderManager().destroyLoader(LOAD_TEMPLATE_BY_ID);
                 getLoaderManager().initLoader(LOAD_TEMPLATE_BY_ID, b, this);
             }
         }

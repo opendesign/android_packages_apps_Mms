@@ -103,7 +103,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private CharSequence mTitle;
     private SharedPreferences mPrefs;
     private Handler mHandler;
-    private boolean mNeedToMarkAsSeen;
+    private boolean mNeedToRemoveObsoleteThreads;
     private TextView mUnreadConvCount;
 
     private MenuItem mSearchItem;
@@ -249,7 +249,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         DraftCache.getInstance().addOnDraftChangedListener(this);
 
-        mNeedToMarkAsSeen = true;
+        mNeedToRemoveObsoleteThreads = true;
 
         startAsyncQuery();
 
@@ -266,9 +266,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // threads, don't invalidate the cache because we're in the process of building it.
         // TODO: think of a better way to invalidate cache more surgically or based on actual
         // TODO: changes we care about
+        /*
         if (!Conversation.loadingThreads()) {
             Contact.invalidateCache();
         }
+        */
     }
 
     @Override
@@ -280,6 +282,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
         // multi-select mode (if we're in it) and remove all the selections.
         getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+
+        // Close the cursor in the ListAdapter if the activity stopped.
+        Cursor cursor = mListAdapter.getCursor();
+
+        if (cursor != null && !cursor.isClosed()) {
+            cursor.close();
+        }
 
         mListAdapter.changeCursor(null);
     }
@@ -668,13 +677,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 setTitle(mTitle);
                 setProgressBarIndeterminateVisibility(false);
 
-                if (mNeedToMarkAsSeen) {
-                    mNeedToMarkAsSeen = false;
-                    Conversation.markAllConversationsAsSeen(getApplicationContext());
-
+                Conversation.markAllConversationsAsSeen(getApplicationContext());
+                if (mNeedToRemoveObsoleteThreads) {
+                    mNeedToRemoveObsoleteThreads = false;
                     // Delete any obsolete threads. Obsolete threads are threads that aren't
                     // referenced by at least one message in the pdu or sms tables. We only call
-                    // this on the first query (because of mNeedToMarkAsSeen).
+                    // this on the first query.
                     mHandler.post(mDeleteObsoleteThreadsRunnable);
                 }
                 break;

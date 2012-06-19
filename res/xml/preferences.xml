@@ -149,5 +149,19 @@
                         android:title="@string/pref_title_mms_use_sent_timestamp"
                         android:summary="@string/pref_summary_mms_use_sent_timestamp"
                         android:defaultValue="false" />
+    <ListPreference     android:key="pref_key_mms_input_type"
+                        android:title="@string/pref_title_input_type"
+                        android:summary="@string/pref_summary_input_type"
+                        android:entries="@array/pref_entries_input_type"
+                        android:entryValues="@array/pref_values_input_type" />
+
+    <CheckBoxPreference android:key="pref_key_sms_EnableMultipartSMS"
+                        android:title="@string/pref_title_sms_EnableMultipartSMS"
+                        android:summary="@string/pref_summary_sms_EnableMultipartSMS"
+                        android:defaultValue="true" />
+    <Preference android:key="pref_key_sms_SmsToMmsTextThreshold"
+                      android:dependency="pref_key_sms_EnableMultipartSMS"
+                      android:summary="@string/pref_summary_sms_SmsToMmsTextThreshold"
+                      android:title="@string/pref_title_sms_SmsToMmsTextThreshold" />
   </PreferenceCategory>
 </PreferenceScreen>
