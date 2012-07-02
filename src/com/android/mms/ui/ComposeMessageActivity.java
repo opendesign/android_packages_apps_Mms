@@ -172,7 +172,9 @@ import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.templates.TemplateGesturesLibrary;
 import com.android.mms.templates.TemplatesProvider.Template;
+import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MessagingNotification;
+import com.android.mms.transaction.MessageSender.AbstractCountDownSender;
 import com.android.mms.ui.MessageUtils.ResizeImageResultCallback;
 import com.android.mms.ui.RecipientsEditor.RecipientContextMenuInfo;
 import com.android.mms.util.EmojiParser;
@@ -2546,6 +2548,15 @@ public class ComposeMessageActivity extends Activity
         }
     }
 
+    public void onMessageCountDownTick() {
+        // Do the same query as if we sent the message, instead here we force it (refresh everything)
+        runOnUiThread(new Runnable() {
+            public void run() {
+                startMsgListQuery();
+            }
+        });
+    }
+
     public void onMaxPendingMessagesReached() {
         saveDraft(false);
 
@@ -3590,7 +3601,23 @@ public class ComposeMessageActivity extends Activity
         mMsgListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (view != null) {
-                    ((MessageListItem) view).onMessageListItemClick();
+                    if(!isCursorValid()) {
+                        return;
+                    }
+                    Cursor cursor = mMsgListAdapter.getCursor();
+                    String type = cursor.getString(COLUMN_MSG_TYPE);
+                    long msgId = cursor.getLong(COLUMN_ID);
+                    MessageItem msgItem = mMsgListAdapter.getCachedMessageItem(type, msgId, cursor);
+                    AbstractCountDownSender countDownSender = MessageSender.mCountDownSenders.get(msgItem.mDate);
+                    if(msgItem != null && msgItem.isSending() && countDownSender != null) {
+                            editMessageItem(msgItem);
+                            drawBottomPanel();
+                            countDownSender.cancel();
+                            MessageSender.mCountDownSenders.remove(countDownSender);
+                            Log.d(TAG, "Cancelling countdown for message "+msgId);
+                    } else {
+                        ((MessageListItem) view).onMessageListItemClick();
+                    }
                 }
             }
         });
