@@ -361,6 +361,9 @@
     <string name="pref_summary_mms_notification_vibrate_call">Vibrieren während eines Anrufs erlauben</string>
     <string name="pref_title_mms_notification_vibrate_custom">Anderes Vibrationsmuster</string>
     <string name="pref_text_mms_notification_vibrate_custom">Format aus/an in Millisekunden: aus, an, aus, an, ...</string>
+    
+    <!-- Motion Call -->
+    <string name="pref_summary_motion_call_recipient">Bewege dein Telefon an dein Ohr um den Empfänger anzurufen</string>
 
     <!-- Sms templates -->
     <string name="prefs_templates_settings">SMS-Vorlagen</string>
