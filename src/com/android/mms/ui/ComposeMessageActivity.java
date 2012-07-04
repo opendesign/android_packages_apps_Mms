@@ -183,6 +183,13 @@ import com.android.mms.util.SmileyParser;
 
 import android.text.InputFilter.LengthFilter;
 
+//Pick-Up-To-Call
+import android.provider.Settings.SettingNotFoundException;
+import android.hardware.SensorEventListener;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorManager;
+
 /**
  * This is the main UI for:
  * 1. Composing a new message;
@@ -337,6 +344,14 @@ public class ComposeMessageActivity extends Activity
     private double mGestureSensitivity;
 
     private int inputMethod;
+    
+    //Pick-Up-To-Call
+    private SensorManager mSensorManager;
+    private int SensorOrientationY;
+	private int SensorProximity;
+	private int oldProximity;
+	private boolean initProx;
+	private boolean proxChanged;
 
     @SuppressWarnings("unused")
     public static void log(String logMsg) {
@@ -1934,6 +1949,64 @@ public class ComposeMessageActivity extends Activity
             android.os.Debug.startMethodTracing("compose");
         }
     }
+    
+        //Pick-Up-To-Call
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+
+		/* get event if orientation is changed, 
+		 * save Sensor event.values to check on them later
+		 */
+		switch (event.sensor.getType()) {
+
+		case Sensor.TYPE_ORIENTATION:
+			SensorOrientationY = (int) event.values[SensorManager.DATA_Y];
+			break;
+
+		case Sensor.TYPE_PROXIMITY:
+			int currentProx = (int) event.values[0];
+			if (initProx) {
+				SensorProximity = currentProx;
+				initProx = false;
+			} else {
+				if( SensorProximity > 0 && currentProx == 0){
+					proxChanged = true;
+				}
+			}
+			SensorProximity = currentProx;
+			break;
+		}
+		
+		if (rightOrientation(SensorOrientationY) && proxChanged ) {
+
+			if (getRecipients().isEmpty() == false) {
+				//unregister Listener to don't let the onSesorChanged run the whole time
+				mSensorManager.unregisterListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION));
+				mSensorManager.unregisterListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY));
+				
+				//get number and attach it to an Intent.ACTION_CALL, then start the Intent
+				String number = getRecipients().get(0).getNumber();
+				Intent dialIntent = new Intent(Intent.ACTION_CALL);
+				dialIntent.setData(Uri.fromParts("tel", number, null));
+				//dialIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				startActivity(dialIntent);
+			}
+		}
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+	
+	public boolean rightOrientation(int orinentation) {
+		if (orinentation < -65) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
     private void showSubjectEditor(boolean show) {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
@@ -2270,6 +2343,24 @@ public class ComposeMessageActivity extends Activity
                                 InputType.TYPE_TEXT_FLAG_AUTO_CORRECT|
                                 InputType.TYPE_TEXT_FLAG_CAP_SENTENCES|
                                 InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+                                
+        //Pick-Up-To-Call
+        boolean motionCallEnabled = prefs.getBoolean(MessagingPreferenceActivity.MOTION_CALL_RECIPIENT, false);
+        
+        if(motionCallEnabled){
+			SensorOrientationY = 0;
+			SensorProximity = 0;
+			proxChanged = false;
+			initProx = true;
+				
+			mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+			mSensorManager.registerListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
+						SensorManager.SENSOR_DELAY_UI);
+			mSensorManager.registerListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+						SensorManager.SENSOR_DELAY_UI);
+		}
     }
 
     @Override
@@ -2284,6 +2375,18 @@ public class ComposeMessageActivity extends Activity
         removeRecipientsListeners();
 
         clearPendingProgressDialog();
+        
+        //Pick-Up-To-Call
+		SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences((Context) ComposeMessageActivity.this);
+        boolean motionCallEnabled = prefs.getBoolean(MessagingPreferenceActivity.MOTION_CALL_RECIPIENT, false);
+        
+        if(motionCallEnabled){
+			mSensorManager.unregisterListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION));
+			mSensorManager.unregisterListener(this,
+						mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY));
+		}
     }
 
     @Override
