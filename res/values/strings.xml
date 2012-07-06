@@ -355,6 +355,9 @@
     <string name="pref_title_notification_ringtone">Choose ringtone</string>
     <!-- Settings item for setting the number of message to save for each conversation -->
     <string name="pref_messages_to_save">Set number of messages to save</string>
+    <!-- Settings item description for boolean option to enable/disable motion call recipient -->
+    <string name="pref_title_motion_call_recipient">Motion Call</string>
+    <string name="pref_summary_motion_call_recipient">Move your phone to your ear to call a recipient</string>
 
     <!-- Settings item for the soft keyboard picker -->
     <string name="pref_title_input_type">Soft keyboard type</string>

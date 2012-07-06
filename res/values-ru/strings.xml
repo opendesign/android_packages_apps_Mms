@@ -356,6 +356,8 @@
     <string name="template_cancel_confirm_title">Внимание</string>
     <string name="template_cancel_confirm_text">Желаете отменить?</string>
     <string name="gestures_already_present">Внимание: подобный жест связан с другим шаблоном!</string>
+    <string name="pref_title_motion_call_recipient">Позвонить движением</string>
+    <string name="pref_summary_motion_call_recipient">Поднимите телефон к Вашим глазам для звонка собеседнику</string>
 
     <!-- Extra Settings: -->
     <string name="pref_extra_settings">Доп. настройки</string>
