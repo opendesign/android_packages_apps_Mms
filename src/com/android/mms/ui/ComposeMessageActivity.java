@@ -184,7 +184,6 @@ import com.android.mms.util.SmileyParser;
 import android.text.InputFilter.LengthFilter;
 
 //Pick-Up-To-Call
-import android.provider.Settings.SettingNotFoundException;
 import android.hardware.SensorEventListener;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -349,7 +348,6 @@ public class ComposeMessageActivity extends Activity
     private SensorManager mSensorManager;
     private int SensorOrientationY;
 	private int SensorProximity;
-	private int oldProximity;
 	private boolean initProx;
 	private boolean proxChanged;
 
