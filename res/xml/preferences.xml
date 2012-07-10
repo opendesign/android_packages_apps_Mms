@@ -141,6 +141,10 @@
     </PreferenceCategory>
 
   <PreferenceCategory android:title="@string/pref_extra_settings">
+	 <CheckBoxPreference android:key="pref_key_motion_call_recipient"
+                        android:title="@string/pref_title_motion_call_recipient"
+                        android:summary="@string/pref_summary_motion_call_recipient"
+                        android:defaultValue="false" />
     <CheckBoxPreference android:key="pref_key_strip_unicode"
                         android:title="@string/pref_title_strip_unicode"
                         android:summary="@string/pref_summary_strip_unicode"
