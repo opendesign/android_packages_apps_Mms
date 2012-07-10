@@ -205,7 +205,7 @@ import android.hardware.SensorManager;
 public class ComposeMessageActivity extends Activity
         implements View.OnClickListener, TextView.OnEditorActionListener,
         MessageStatusListener, Contact.UpdateListener, OnGesturePerformedListener,
-        LoaderManager.LoaderCallbacks<Cursor>  {
+        LoaderManager.LoaderCallbacks<Cursor>, SensorEventListener {
     public static final int REQUEST_CODE_ATTACH_IMAGE     = 100;
     public static final int REQUEST_CODE_TAKE_PICTURE     = 101;
     public static final int REQUEST_CODE_ATTACH_VIDEO     = 102;
@@ -1948,7 +1948,7 @@ public class ComposeMessageActivity extends Activity
         }
     }
     
-        //Pick-Up-To-Call
+    //Pick-Up-To-Call
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 
@@ -1962,20 +1962,11 @@ public class ComposeMessageActivity extends Activity
 			break;
 
 		case Sensor.TYPE_PROXIMITY:
-			int currentProx = (int) event.values[0];
-			if (initProx) {
-				SensorProximity = currentProx;
-				initProx = false;
-			} else {
-				if( SensorProximity > 0 && currentProx == 0){
-					proxChanged = true;
-				}
-			}
-			SensorProximity = currentProx;
+			SensorProximity = (int) event.values[0];
 			break;
 		}
 		
-		if (rightOrientation(SensorOrientationY) && proxChanged ) {
+		if (rightOrientation(SensorOrientationY) && SensorProximity == 0 ) {
 
 			if (getRecipients().isEmpty() == false) {
 				//unregister Listener to don't let the onSesorChanged run the whole time
@@ -1988,7 +1979,6 @@ public class ComposeMessageActivity extends Activity
 				String number = getRecipients().get(0).getNumber();
 				Intent dialIntent = new Intent(Intent.ACTION_CALL);
 				dialIntent.setData(Uri.fromParts("tel", number, null));
-				//dialIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				startActivity(dialIntent);
 			}
 		}
@@ -2347,17 +2337,17 @@ public class ComposeMessageActivity extends Activity
         
         if(motionCallEnabled){
 			SensorOrientationY = 0;
-			SensorProximity = 0;
+			SensorProximity = 1;
 			proxChanged = false;
 			initProx = true;
 				
 			mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 			mSensorManager.registerListener(this,
 						mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
-						SensorManager.SENSOR_DELAY_UI);
+						SensorManager.SENSOR_DELAY_NORMAL);
 			mSensorManager.registerListener(this,
 						mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
-						SensorManager.SENSOR_DELAY_UI);
+						SensorManager.SENSOR_DELAY_NORMAL);
 		}
     }
 
